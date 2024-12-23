@@ -98,16 +98,78 @@ let books = [
 */
 
 const typeDefs = `
-  type Query {
-    bookCount: Int!,
-    authorCount: Int
-  }
+    type Book {
+        title: String!,
+        author: String!,
+        published: Int!,
+        genres: [String!]!,
+    }
+    type Author {
+        name: String!,
+        id: ID!,
+        born: Int,
+        bookCount: Int
+    }
+    type Query {
+        bookCount: Int!,
+        authorCount: Int,
+        allBooks(author: String, genre: [String]): [Book!]!,
+        allAuthors: [Author!]!,
+    }
+    type Mutation {
+        addBook(
+            title: String!,
+            author: String!,
+            published: Int!,
+            genres: [String!]!
+        ): Book
+        editAuthor(
+            name: String!
+            setBornTo: Int!
+        ): Author
+    }
 `
 
 const resolvers = {
   Query: {
     bookCount: () => books.length,
-    authorCount: () => authors.length
+    authorCount: () => authors.length,
+    allBooks: (r, args) => {
+        let f_books = books
+        if (args.author) {
+            f_books = f_books.filter(b => b.author === args.author)
+        }
+        if (args.genre && args.genre.length > 0) {
+            f_books = f_books.filter(b => 
+                args.genre.some(g => b.genres.includes(g))
+            )
+        }
+        return f_books
+    },
+    allAuthors: () => authors,
+  },
+  Author: {
+    bookCount: (r) => books.filter(b => b.author === r.name).length
+  },
+  Mutation: {
+    addBook: (r, args) => {
+        const book = { ...args}
+        books = books.concat(book)
+        if (!authors.find(a => a.name === args.author)) {
+            const newAuthor = { name: args.author }
+            authors = authors.concat(newAuthor)
+          }
+        return book
+    },
+    editAuthor: (r, args) => {
+        const author = authors.find(a => a.name === args.name)
+        if (!author) {
+            return null
+        }
+        const updatedAuthor = { ...author, born: args.setBornTo }
+        authors = authors.map(a => a.name === args.name ? updatedAuthor : a)
+        return updatedAuthor
+    }
   }
 }
 
