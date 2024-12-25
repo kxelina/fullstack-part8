@@ -127,14 +127,14 @@ const typeDefs = `
         id: ID!
     }
     type Author {
-        name: String!,
+        name: String,
         id: ID!,
         born: Int,
         bookCount: Int
     }
     type User {
-        username: String!
-        favoriteGenre: String
+        username: String!,
+        favoriteGenre: String,
         id: ID!
     }
     type Token {
@@ -145,7 +145,9 @@ const typeDefs = `
         authorCount: Int,
         allBooks(author: String, genre: [String]): [Book!]!,
         allAuthors: [Author!]!,
-        me: User
+        allGenres: [String!]!,
+        me: User,
+        recommendations: [Book!]!
     }
     type Mutation {
         addBook(
@@ -159,11 +161,11 @@ const typeDefs = `
             setBornTo: Int!
         ): Author
         createUser(
-            username: String!
+            username: String!,
             favoriteGenre: String
         ): User
         login(
-            username: String!
+            username: String!,
             password: String!
         ): Token
     }
@@ -188,12 +190,38 @@ const resolvers = {
         const result = await Author.find({})
         return result 
     },
+    allGenres: async () => {
+        books = await Book.find({})
+        const genres = books.reduce((a, book) => {
+            book.genres.forEach(g => {
+                if (!a.includes(g)) {
+                    a.push(g)
+                }
+            })
+            return a
+        }
+        , [])
+        return genres
+    },
     me: (r, args, context) => {
         return context.currentUser
+    },
+    recommendations: async (r, args, context) => {
+        const currentUser = context.currentUser
+        if (!currentUser) {
+            throw new GraphQLError('not authenticated', {
+                extensions:{
+                    code: 'BAD_USER_INPUT',
+                }
+            })
+        }
+        const books = await Book.find({genres: { $in: [currentUser.favoriteGenre] }}).populate('author')
+        return books
     }
   },
   Author: {
-    bookCount: (r) => Book.collection.countDocuments({author: r._id})
+    bookCount: (r) => Book.collection.countDocuments({author: r._id}),
+    name : (author) => author.name || undefined
   },
   Mutation: {
     addBook: async (r, args, context) => {
@@ -254,7 +282,7 @@ const resolvers = {
         return author
     },
     createUser: async (r, args) => {
-        const user = new User({ username: args.username })
+        const user = new User({ username: args.username, favoriteGenre: args.favoriteGenre })
         try {
             await user.save()
         } catch (e) {

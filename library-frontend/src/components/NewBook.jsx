@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {gql, useMutation} from '@apollo/client'
+import Notification from './Notification'
 
 const CREATE_BOOK = gql`
   mutation createBook($title: String!, $author: String!, $published: Int!, $genres: [String!]!) {
@@ -10,9 +11,25 @@ const CREATE_BOOK = gql`
       genres: $genres
     ) {
       title
-      author
+      author {
+        name
+        born
+      }
       published
       genres
+    }
+  }
+`
+
+const ALL_BOOKS = gql`
+  query allBooks($genre: [String]) {
+    allBooks(genre: $genre) {
+      title
+      author  {
+        name
+        born
+      }
+      published
     }
   }
 `
@@ -24,8 +41,28 @@ const NewBook = (props) => {
   const [published, setPublished] = useState('')
   const [genre, setGenre] = useState('')
   const [genres, setGenres] = useState([])
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
-  const [createBook] = useMutation(CREATE_BOOK)
+  const [createBook] = useMutation(CREATE_BOOK, {
+    onError: (error) => {
+      const messages = error.graphQLErrors.map(e => e.message).join('\n')
+      setError(messages)
+    },
+    update: (cache, response) => {
+      cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => {
+        return {
+          allBooks: allBooks.concat(response.data.addBook),
+        }
+      })
+    },
+    onCompleted: () => {
+      console.log('completed')
+      setSuccess('Book added successfully')
+      setTimeout(() => {
+        setSuccess('')
+      }, 5000)}
+  })
 
   if (!props.show) {
     return null
@@ -36,7 +73,7 @@ const NewBook = (props) => {
 
     console.log('add book...')
 
-    createBook({ variables: { title, author, published: parseInt(published), genres } })
+    createBook({ variables: { title, author, published: parseInt(published), genres} })
 
     setTitle('')
     setPublished('')
@@ -52,6 +89,8 @@ const NewBook = (props) => {
 
   return (
     <div>
+      <Notification message={error} type="error" setMessage={setError}/>
+      <Notification message={success} type="success" setMessage={setSuccess}/>
       <form onSubmit={submit}>
         <div>
           title

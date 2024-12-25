@@ -1,6 +1,7 @@
 import {gql, useQuery, useMutation} from '@apollo/client'
 import {useState} from 'react'
 import Select from 'react-select'
+import Notification from './Notification'
 
 const ALL_AUTHORS = gql`
   query {
@@ -24,10 +25,22 @@ const EDIT_AUTHOR = gql`
 const Authors = (props) => {
   const [name, setName] = useState('')
   const [born, setBorn] = useState('')  
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')  
+
   const authors = useQuery(ALL_AUTHORS)
   console.log(authors)
   const [editAuthor] = useMutation(EDIT_AUTHOR, {
-    refetchQueries: [{query: ALL_AUTHORS}]
+    refetchQueries: [{query: ALL_AUTHORS}],
+    onError: (error) => {
+      const messages = error.graphQLErrors.map(e => e.message).join('\n')
+      setError(messages)
+    },
+    onCompleted: () => {
+      setSuccess('Author updated successfully')
+      setTimeout(() => {
+        setSuccess('')
+      }, 5000)}
   })
 
   if (!props.show) {
@@ -52,6 +65,8 @@ const Authors = (props) => {
   return (
     <div>
       <h2>authors</h2>
+      <Notification message={error} type="error" setMessage={setError}/>
+      <Notification message={success} type="success" setMessage={setSuccess}/>  
       <table>
         <tbody>
           <tr>
