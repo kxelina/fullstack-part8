@@ -34,7 +34,6 @@ const ALL_BOOKS = gql`
   }
 `
 
-
 const NewBook = (props) => {
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
@@ -55,13 +54,7 @@ const NewBook = (props) => {
           allBooks: allBooks.concat(response.data.addBook),
         }
       })
-    },
-    onCompleted: () => {
-      console.log('completed')
-      setSuccess('Book added successfully')
-      setTimeout(() => {
-        setSuccess('')
-      }, 5000)}
+    }
   })
 
   if (!props.show) {
@@ -90,7 +83,6 @@ const NewBook = (props) => {
   return (
     <div>
       <Notification message={error} type="error" setMessage={setError}/>
-      <Notification message={success} type="success" setMessage={setSuccess}/>
       <form onSubmit={submit}>
         <div>
           title

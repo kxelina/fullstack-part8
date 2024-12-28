@@ -35,12 +35,7 @@ const Authors = (props) => {
     onError: (error) => {
       const messages = error.graphQLErrors.map(e => e.message).join('\n')
       setError(messages)
-    },
-    onCompleted: () => {
-      setSuccess('Author updated successfully')
-      setTimeout(() => {
-        setSuccess('')
-      }, 5000)}
+    }
   })
 
   if (!props.show) {
@@ -66,7 +61,6 @@ const Authors = (props) => {
     <div>
       <h2>authors</h2>
       <Notification message={error} type="error" setMessage={setError}/>
-      <Notification message={success} type="success" setMessage={setSuccess}/>  
       <table>
         <tbody>
           <tr>
